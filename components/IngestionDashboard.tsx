@@ -192,10 +192,10 @@ export function IngestionDashboard({ leads: initialLeads }: Props) {
   );
   const bulkActionLeads = selectedLeads.length ? selectedLeads : visibleLeads;
   const bulkActionScope = selectedLeads.length ? "selected rows" : "filtered view";
-  const bulkActionLabel =
+  const selectedActionLabel =
     selectedLeads.length > 0
       ? `selected ${selectedLeads.length} lead${selectedLeads.length === 1 ? "" : "s"}`
-      : `all ${visibleLeads.length} visible leads`;
+      : "selected leads";
   const dirtyActionLeads = bulkActionLeads.filter((lead) => dirtyIds.has(lead.id));
   const allVisibleSelected =
     visibleLeads.length > 0 && visibleLeads.every((lead) => selectedIds.has(lead.id));
@@ -292,15 +292,15 @@ export function IngestionDashboard({ leads: initialLeads }: Props) {
       setMessage({ kind: "err", text: "Choose a campaign before assigning leads." });
       return;
     }
-    if (bulkActionLeads.length === 0) {
-      setMessage({ kind: "err", text: "No leads match the current view." });
+    if (selectedLeads.length === 0) {
+      setMessage({ kind: "err", text: "Select one or more rows before assigning a campaign." });
       return;
     }
     setBusy("assign");
     setMessage(null);
     try {
       const updates = await Promise.all(
-        bulkActionLeads.map((lead) =>
+        selectedLeads.map((lead) =>
           apiFetch<{ lead: Lead }>(`/api/leads/${lead.id}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
@@ -609,16 +609,16 @@ export function IngestionDashboard({ leads: initialLeads }: Props) {
                 <button
                   type="button"
                   onClick={assignCampaign}
-                  disabled={busy !== null || !selectedCampaign || bulkActionLeads.length === 0}
+                  disabled={busy !== null || !selectedCampaign || selectedLeads.length === 0}
                   className="btn-primary text-sm whitespace-nowrap"
                 >
                   {busy === "assign"
                     ? "Assigning..."
-                    : `Assign ${bulkActionLabel}`}
+                    : `Assign ${selectedActionLabel}`}
                 </button>
               </div>
               <p className="mt-2 text-xs text-ink-400">
-                Applies to {bulkActionScope}. The assignment is saved back to Airtable.
+                Select rows first. The assignment is saved back to Airtable.
               </p>
             </div>
 
