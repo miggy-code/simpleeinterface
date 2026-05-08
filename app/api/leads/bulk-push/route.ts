@@ -7,7 +7,12 @@
  * in place with Instantly IDs, campaign metadata, Pipeline Status "In Campaign",
  * and Initial Outreach Date.
  *
- * Body: { leadIds: string[], campaignId?: string, campaignName?: string }
+ * Body: {
+ *   leadIds: string[],
+ *   campaignId?: string,
+ *   campaignName?: string,
+ *   forceUnsafe?: boolean
+ * }
  */
 import { NextRequest, NextResponse } from "next/server";
 import { getLead } from "@/lib/airtable";
@@ -45,6 +50,7 @@ export async function POST(req: NextRequest) {
       typeof body.campaignId === "string" ? body.campaignId.trim() : undefined;
     const campaignName =
       typeof body.campaignName === "string" ? body.campaignName.trim() : undefined;
+    const forceUnsafe = body.forceUnsafe === true;
 
     const results: LeadResult[] = [];
 
@@ -71,7 +77,7 @@ export async function POST(req: NextRequest) {
         }
 
         const verification = await verifyEmailWithDeBounce(lead.email ?? "");
-        if (verification.decision !== "safe") {
+        if (verification.decision !== "safe" && !forceUnsafe) {
           results.push({
             id: leadId,
             name: lead.name,
@@ -115,7 +121,13 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       results,
-      summary: { successCount, errorCount, skippedCount, total: leadIds.length },
+      summary: {
+        successCount,
+        errorCount,
+        skippedCount,
+        total: leadIds.length,
+        forceUnsafe,
+      },
     });
   } catch (e) {
     return toErrorResponse(e, "Failed to process bulk push");

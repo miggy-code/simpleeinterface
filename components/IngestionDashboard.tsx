@@ -142,6 +142,7 @@ export function IngestionDashboard({ leads: initialLeads }: Props) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [verifications, setVerifications] = useState<Record<string, Verification>>({});
   const [pushResults, setPushResults] = useState<PushResult[] | null>(null);
+  const [unsafePushOpen, setUnsafePushOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<{ kind: "ok" | "err"; text: string } | null>(
     null
@@ -414,7 +415,7 @@ export function IngestionDashboard({ leads: initialLeads }: Props) {
     }
   }
 
-  async function pushLeads() {
+  async function pushLeads(forceUnsafe = false) {
     if (bulkActionLeads.length === 0) return;
     if (dirtyActionLeads.length > 0) {
       setMessage({ kind: "err", text: "Save edited rows before pushing leads." });
@@ -426,13 +427,16 @@ export function IngestionDashboard({ leads: initialLeads }: Props) {
     try {
       const data = await apiFetch<{ results: PushResult[] }>(
         "/api/leads/bulk-push",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ leadIds: bulkActionLeads.map((lead) => lead.id) }),
-          fallbackError: "Failed to push leads to Instantly",
-        }
-      );
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              leadIds: bulkActionLeads.map((lead) => lead.id),
+              forceUnsafe,
+            }),
+            fallbackError: "Failed to push leads to Instantly",
+          }
+        );
       setPushResults(data.results);
       setVerifications((prev) => {
         const next = { ...prev };
@@ -635,46 +639,127 @@ export function IngestionDashboard({ leads: initialLeads }: Props) {
             )}
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
             <button
               onClick={() => saveLeads()}
               disabled={busy !== null || dirtyActionLeads.length === 0}
-              className="btn-secondary text-sm"
+              className="flex min-h-[78px] flex-col items-start justify-center gap-1 rounded-2xl border border-white/70 bg-white/85 px-4 py-3 text-left shadow-[0_18px_45px_-34px_rgba(14,14,8,0.35)] transition-all hover:-translate-y-px hover:border-ink-200 hover:bg-white disabled:opacity-50"
             >
+              <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-ink-400">
+                Writeback
+              </span>
               {busy === "save"
                 ? "Saving..."
                 : `Save edits (${dirtyActionLeads.length})`}
+              <span className="text-xs text-ink-400">
+                Persist manual field changes to Airtable.
+              </span>
             </button>
             <button
               onClick={reviseRoles}
               disabled={busy !== null || bulkActionLeads.length === 0}
-              className="btn-secondary text-sm"
+              className="flex min-h-[78px] flex-col items-start justify-center gap-1 rounded-2xl border border-white/70 bg-white/85 px-4 py-3 text-left shadow-[0_18px_45px_-34px_rgba(14,14,8,0.35)] transition-all hover:-translate-y-px hover:border-ink-200 hover:bg-white disabled:opacity-50"
             >
+              <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-ink-400">
+                Cleanup
+              </span>
               {busy === "revise-roles"
                 ? "Revising..."
                 : `Revise roles (${bulkActionLeads.length})`}
+              <span className="text-xs text-ink-400">
+                Normalize job titles before review and push.
+              </span>
             </button>
             <button
               onClick={verifyLeads}
               disabled={busy !== null || bulkActionLeads.length === 0}
-              className="btn-secondary text-sm"
+              className="flex min-h-[78px] flex-col items-start justify-center gap-1 rounded-2xl border border-white/70 bg-white/85 px-4 py-3 text-left shadow-[0_18px_45px_-34px_rgba(14,14,8,0.35)] transition-all hover:-translate-y-px hover:border-ink-200 hover:bg-white disabled:opacity-50"
             >
+              <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-ink-400">
+                Validation
+              </span>
               {busy === "verify"
                 ? "Verifying..."
                 : `Run DeBounce (${bulkActionLeads.length})`}
+              <span className="text-xs text-ink-400">
+                Check deliverability before any send.
+              </span>
             </button>
             <button
-              onClick={pushLeads}
+              onClick={() => pushLeads(false)}
               disabled={busy !== null || bulkActionLeads.length === 0}
-              className="btn-secondary border-amber-200 bg-amber-50 text-amber-800 hover:border-amber-300 hover:bg-amber-100 text-sm"
+              className="flex min-h-[78px] flex-col items-start justify-center gap-1 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-left shadow-[0_18px_45px_-34px_rgba(180,83,9,0.18)] transition-all hover:-translate-y-px hover:border-amber-300 hover:bg-amber-100 disabled:opacity-50"
             >
+              <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-700">
+                Safe push
+              </span>
               {busy === "push"
                 ? "Pushing..."
                 : `Push safe leads (${bulkActionLeads.length})`}
+              <span className="text-xs text-amber-700/80">
+                Only leads cleared by DeBounce.
+              </span>
+            </button>
+            <button
+              onClick={() => setUnsafePushOpen(true)}
+              disabled={busy !== null || bulkActionLeads.length === 0}
+              className="flex min-h-[78px] flex-col items-start justify-center gap-1 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-left shadow-[0_18px_45px_-34px_rgba(127,29,29,0.16)] transition-all hover:-translate-y-px hover:border-red-300 hover:bg-red-100 disabled:opacity-50"
+            >
+              <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-red-700">
+                Override
+              </span>
+              Push unsafe leads
+              <span className="text-xs text-red-700/80">
+                Bypass DeBounce after confirmation.
+              </span>
             </button>
           </div>
         </div>
       </div>
+
+      {unsafePushOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/50 px-4 backdrop-blur-sm"
+          onClick={() => setUnsafePushOpen(false)}
+        >
+          <div
+            className="w-full max-w-lg rounded-[1.75rem] border border-amber-200 bg-white p-6 shadow-[0_30px_90px_-36px_rgba(14,14,8,0.55)]"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 rounded-full bg-red-100 px-2 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-red-700">
+                Warning
+              </div>
+            </div>
+            <h3 className="mt-4 text-xl font-semibold text-ink-900">
+              Push unsafe leads?
+            </h3>
+            <p className="mt-3 text-sm leading-6 text-ink-600">
+              This will send {bulkActionLeads.length} lead{bulkActionLeads.length === 1 ? "" : "s"} even if DeBounce has not cleared them.
+              Use this only if you intentionally want to override the safety check.
+            </p>
+            <div className="mt-5 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setUnsafePushOpen(false)}
+                className="btn-secondary text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setUnsafePushOpen(false);
+                  void pushLeads(true);
+                }}
+                className="btn-primary border-red-700 bg-red-700 text-sm hover:bg-red-800"
+              >
+                Push unsafe leads
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {pushResults && (
         <div className="card p-4">

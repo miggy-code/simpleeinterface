@@ -18,6 +18,7 @@ export async function POST(
     const body = await parseOptionalJsonObject(req);
     const campaignId = readOptionalString(body, "campaignId");
     const campaignName = readOptionalString(body, "campaignName");
+    const forceUnsafe = body.forceUnsafe === true;
 
     const lead = await getLead(id);
     if (!lead) {
@@ -26,7 +27,7 @@ export async function POST(
     resolveLeadPushContext(lead, { campaignId, campaignName });
 
     const verification = await verifyEmailWithDeBounce(lead.email ?? "");
-    if (verification.decision !== "safe") {
+    if (verification.decision !== "safe" && !forceUnsafe) {
       return NextResponse.json(
         {
           error:
@@ -44,7 +45,12 @@ export async function POST(
       campaignName,
     });
 
-    return NextResponse.json({ success: true, lead: updatedLead, verification });
+    return NextResponse.json({
+      success: true,
+      lead: updatedLead,
+      verification,
+      forceUnsafe,
+    });
   } catch (err) {
     console.error("[push]", err);
     return toErrorResponse(
