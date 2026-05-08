@@ -1,0 +1,76 @@
+%% ⚠️  HISTORICAL — see Data_Flow_and_Schema_Map.md for current reality.
+%% This diagram describes the V2 design intent (3-table forward-only
+%% movement: Leads → Active Outreach → Re-engagement Archive). In current
+%% code, leads stay in the Leads table and progress via the Pipeline Status
+%% field. Active Outreach and Re-engagement Archive tables exist but are
+%% empty. The diagram is preserved as design intent.
+
+flowchart TD
+    %% ─── Lead Entry ────────────────────────────────────────────────────────────
+    A([Lead Source\nApollo / LinkedIn / Manual]) --> B[(Airtable\nLeads Table\nIngestion)]
+
+    %% ─── Ingestion Dashboard ───────────────────────────────────────────────────
+    B --> C{Web App\nIngestion Tab}
+    C --> D[Review Lead\nICP Fit / Industry / Revenue]
+    D --> E{Qualified?}
+    E -- No --> F[Mark Disqualified\nStays in Leads Table]
+    E -- Yes --> G[Open Personalization\nWorkbench]
+
+    %% ─── Personalization Workbench ─────────────────────────────────────────────
+    G --> H[Read Research Insights\nfrom Airtable]
+    H --> I{Hook exists?}
+    I -- No --> J[Generate with AI\nDeepSeek / GPT]
+    J --> K[Review & Edit Hook\n1–2 sentences]
+    I -- Yes --> K
+    K --> L[Live Email Preview\nReal campaign template\nfrom Instantly API]
+    L --> M[Select Campaign\nfrom Instantly]
+    M --> N[Approve Lead\nStatus → Approved]
+
+    %% ─── Push to Instantly ─────────────────────────────────────────────────────
+    N --> O[Push to Instantly\nSingle or Bulk]
+    O --> P[Instantly creates lead\nwith personalization_hook\n+ custom variables]
+    P --> Q[(Airtable\nActive Outreach Table)]
+
+    %% ─── Active Outreach Monitoring ────────────────────────────────────────────
+    Q --> R{Web App\nActive Outreach Tab}
+    R --> S[Monitor Engagement\nOpens / Replies / Bounces]
+    S --> T[Sync from Instantly\nManual or Scheduled]
+
+    %% ─── Instantly Campaign Execution ──────────────────────────────────────────
+    P --> U[[Instantly Campaign\nStep 1: Day 0\nStep 2: Day 3\nStep 3: Day 7\nStep 4: Day 14]]
+    U --> V{Lead Response?}
+    V -- Meeting Booked --> W[Win\nStay in Active Outreach\nMark Meeting Booked]
+    V -- Replied / Interested --> X[Mark Interested\nHandle manually in Instantly]
+    V -- Bounced / Unsubscribed --> Y[Terminal Status]
+    V -- No Response --> Z{21 days since\nlast contact?}
+    Z -- No --> U
+    Z -- Yes --> Y
+
+    %% ─── Re-engagement Trigger ─────────────────────────────────────────────────
+    Y --> AA[Re-engagement Trigger\nNightly cron or manual]
+    W --> AA
+    AA --> BB[(Airtable\nRe-engagement Archive\nLead Repository)]
+
+    %% ─── Archive Panel ─────────────────────────────────────────────────────────
+    BB --> CC{Web App\nArchive Tab}
+    CC --> DD[View Lead History\nArchive Reason / Campaign / Outcome]
+    DD --> EE[Generate Nurture Angles\nAI suggests 3 content ideas\nbased on lead profile]
+    EE --> FF{Re-engage?}
+    FF -- Yes --> GG[Push to Re-engagement\nInstantly Campaign\nBlog posts / Value content]
+    FF -- No --> HH[Stays in Archive\nPermanent Lead Repository]
+    GG --> II[[Instantly\nNurture Campaign\nContent-based sequence]]
+
+    %% ─── Styling ────────────────────────────────────────────────────────────────
+    classDef airtable fill:#e8f4fd,stroke:#2563eb,color:#1e3a5f,font-weight:bold
+    classDef webapp fill:#f0fdf4,stroke:#16a34a,color:#14532d,font-weight:bold
+    classDef instantly fill:#fef9c3,stroke:#ca8a04,color:#713f12,font-weight:bold
+    classDef action fill:#f8fafc,stroke:#94a3b8,color:#334155
+    classDef terminal fill:#fef2f2,stroke:#dc2626,color:#7f1d1d
+    classDef win fill:#f0fdf4,stroke:#16a34a,color:#14532d
+
+    class B,Q,BB airtable
+    class C,R,CC webapp
+    class P,U,II instantly
+    class D,G,H,K,L,M,N,O,S,T,DD,EE,GG action
+    class F,Y,HH terminal
+    class W,X win

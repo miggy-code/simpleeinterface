@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body {
+    @apply bg-[radial-gradient(circle_at_top_left,_rgba(193,96,43,0.14),_transparent_28%),radial-gradient(circle_at_top_right,_rgba(14,14,8,0.08),_transparent_24%),linear-gradient(180deg,#fbfaf7_0%,#f6f4ee_100%)] text-ink-800 antialiased;
+    font-feature-settings: "ss01", "ss02", "cv11";
+  }
+
+  h1, h2, h3, h4 {
+    @apply tracking-tight text-ink-900;
+  }
+
+  body {
+    min-height: 100vh;
+  }
+
+  /* Subtle scrollbar */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #d6d6cf; border-radius: 6px; }
+  ::-webkit-scrollbar-thumb:hover { background: #b3b3a8; }
+}
+
+@layer components {
+  /* ── Buttons ── */
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-xl border px-3.5 py-2 text-sm font-medium transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-50 select-none;
+  }
+  .btn-primary {
+    @apply btn border-ink-900 bg-ink-900 text-white shadow-[0_12px_30px_-18px_rgba(14,14,8,0.9)] hover:-translate-y-px hover:bg-ink-800 active:scale-[0.98];
+  }
+  .btn-secondary {
+    @apply btn border-white/70 bg-white/85 text-ink-700 shadow-[0_10px_24px_-20px_rgba(14,14,8,0.45)] backdrop-blur hover:-translate-y-px hover:border-ink-200 hover:bg-white active:scale-[0.98];
+  }
+  .btn-accent {
+    @apply btn border-accent bg-accent text-white shadow-[0_12px_30px_-18px_rgba(193,96,43,0.8)] hover:-translate-y-px hover:bg-accent-dark active:scale-[0.98];
+  }
+  .btn-ghost {
+    @apply btn border-transparent bg-transparent text-ink-600 hover:bg-white/70 hover:text-ink-900;
+  }
+
+  /* ── Form elements ── */
+  .input {
+    @apply w-full rounded-xl border border-white/80 bg-white/90 px-3 py-2 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_8px_24px_-22px_rgba(14,14,8,0.7)]
+           focus:border-accent/50 focus:outline-none focus:ring-4 focus:ring-accent/10
+           placeholder:text-ink-300 transition-colors;
+  }
+  .label {
+    @apply block text-xs font-semibold uppercase tracking-wide text-ink-500 mb-1;
+  }
+
+  /* ── Cards ── */
+  .card {
+    @apply rounded-[1.5rem] border border-white/70 bg-white/82 shadow-[0_24px_80px_-40px_rgba(14,14,8,0.35)] backdrop-blur;
+  }
+  .card-hover {
+    @apply card transition-all duration-150 hover:-translate-y-0.5 hover:border-white hover:shadow-[0_30px_90px_-40px_rgba(14,14,8,0.42)];
+  }
+
+  /* ── Status / badge ── */
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded-md border text-xs font-medium;
+  }
+
+  /* ── Utility ── */
+  .section-heading {
+    @apply text-xs font-semibold uppercase tracking-widest text-ink-400 mb-3;
+  }
+  .divider {
+    @apply border-t border-ink-100 my-4;
+  }
+}

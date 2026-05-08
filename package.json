@@ -1,0 +1,33 @@
+{
+  "name": "throttl-crm-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Throttl Leads CRM dashboard. Airtable backend, Instantly outbound, DeepSeek personalization.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test": "rm -rf .test-build && tsc -p tsconfig.test.json && node --test .test-build/tests/**/*.test.js",
+    "prompt-report": "rm -rf .test-build && tsc -p tsconfig.test.json && node .test-build/tests/prompt-stories/livePromptReport.js"
+  },
+  "dependencies": {
+    "airtable": "^0.12.2",
+    "next": "14.2.15",
+    "openai": "^6.35.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.16.5",
+    "@types/react": "^18.3.5",
+    "@types/react-dom": "^18.3.0",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "14.2.15",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.13",
+    "typescript": "^5.6.2"
+  }
+}
