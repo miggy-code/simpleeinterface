@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { Lead } from "@/lib/schema";
 import { StatusPill } from "./StatusPill";
 import { useCampaignRecords } from "./campaigns/useCampaignRecords";
@@ -147,6 +147,7 @@ export function IngestionDashboard({ leads: initialLeads }: Props) {
   const [message, setMessage] = useState<{ kind: "ok" | "err"; text: string } | null>(
     null
   );
+  const tableScrollRef = useRef<HTMLDivElement | null>(null);
 
   const {
     campaigns,
@@ -215,6 +216,15 @@ export function IngestionDashboard({ leads: initialLeads }: Props) {
     }
     return next;
   }, [drafts, leads, verifications]);
+
+  function scrollToDebounceColumns() {
+    const container = tableScrollRef.current;
+    if (!container) return;
+    container.scrollTo({
+      left: container.scrollWidth,
+      behavior: "smooth",
+    });
+  }
 
   function updateDraft(id: string, field: EditableField, value: string) {
     setDrafts((prev) => {
@@ -359,6 +369,7 @@ export function IngestionDashboard({ leads: initialLeads }: Props) {
         kind: safe === data.results.length ? "ok" : "err",
         text: `${safe} of ${data.results.length} lead${data.results.length === 1 ? "" : "s"} returned Safe to Send.`,
       });
+      scrollToDebounceColumns();
     } catch (err) {
       setMessage({
         kind: "err",
@@ -799,7 +810,7 @@ export function IngestionDashboard({ leads: initialLeads }: Props) {
               </p>
             </div>
           </div>
-          <div className="overflow-x-auto">
+          <div ref={tableScrollRef} className="overflow-x-auto">
             <table className="min-w-[1320px] w-full text-sm">
               <thead>
                 <tr className="bg-[linear-gradient(180deg,rgba(247,247,246,0.95),rgba(247,247,246,0.72))] text-xs uppercase tracking-[0.18em] text-ink-500">
