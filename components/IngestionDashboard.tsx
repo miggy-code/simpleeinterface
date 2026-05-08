@@ -190,9 +190,13 @@ export function IngestionDashboard({ leads: initialLeads }: Props) {
     () => visibleLeads.filter((lead) => selectedIds.has(lead.id)),
     [selectedIds, visibleLeads]
   );
-  const actionLeads = selectedLeads.length ? selectedLeads : visibleLeads;
-  const actionScope = selectedLeads.length ? "selected rows" : "filtered view";
-  const dirtyActionLeads = actionLeads.filter((lead) => dirtyIds.has(lead.id));
+  const bulkActionLeads = selectedLeads.length ? selectedLeads : visibleLeads;
+  const bulkActionScope = selectedLeads.length ? "selected rows" : "filtered view";
+  const bulkActionLabel =
+    selectedLeads.length > 0
+      ? `selected ${selectedLeads.length} lead${selectedLeads.length === 1 ? "" : "s"}`
+      : `all ${visibleLeads.length} visible leads`;
+  const dirtyActionLeads = bulkActionLeads.filter((lead) => dirtyIds.has(lead.id));
   const allVisibleSelected =
     visibleLeads.length > 0 && visibleLeads.every((lead) => selectedIds.has(lead.id));
 
@@ -284,12 +288,19 @@ export function IngestionDashboard({ leads: initialLeads }: Props) {
   }
 
   async function assignCampaign() {
-    if (!selectedCampaign || actionLeads.length === 0) return;
+    if (!selectedCampaign) {
+      setMessage({ kind: "err", text: "Choose a campaign before assigning leads." });
+      return;
+    }
+    if (bulkActionLeads.length === 0) {
+      setMessage({ kind: "err", text: "No leads match the current view." });
+      return;
+    }
     setBusy("assign");
     setMessage(null);
     try {
       const updates = await Promise.all(
-        actionLeads.map((lead) =>
+        bulkActionLeads.map((lead) =>
           apiFetch<{ lead: Lead }>(`/api/leads/${lead.id}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
@@ -321,7 +332,7 @@ export function IngestionDashboard({ leads: initialLeads }: Props) {
   }
 
   async function verifyLeads() {
-    if (actionLeads.length === 0) return;
+    if (bulkActionLeads.length === 0) return;
     if (dirtyActionLeads.length > 0) {
       setMessage({ kind: "err", text: "Save edited rows before running DeBounce." });
       return;
@@ -334,7 +345,7 @@ export function IngestionDashboard({ leads: initialLeads }: Props) {
       }>("/api/leads/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ leadIds: actionLeads.map((lead) => lead.id) }),
+        body: JSON.stringify({ leadIds: bulkActionLeads.map((lead) => lead.id) }),
         fallbackError: "DeBounce verification failed",
       });
       setVerifications((prev) => {
@@ -358,7 +369,7 @@ export function IngestionDashboard({ leads: initialLeads }: Props) {
   }
 
   async function reviseRoles() {
-    if (actionLeads.length === 0) return;
+    if (bulkActionLeads.length === 0) return;
     if (dirtyActionLeads.length > 0) {
       setMessage({ kind: "err", text: "Save edited rows before revising roles." });
       return;
@@ -372,7 +383,7 @@ export function IngestionDashboard({ leads: initialLeads }: Props) {
       }>("/api/leads/revise-roles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ leadIds: actionLeads.map((lead) => lead.id) }),
+        body: JSON.stringify({ leadIds: bulkActionLeads.map((lead) => lead.id) }),
         fallbackError: "Failed to revise roles",
       });
       const updatedLeads = data.results.map((result) => result.lead);
@@ -404,7 +415,7 @@ export function IngestionDashboard({ leads: initialLeads }: Props) {
   }
 
   async function pushLeads() {
-    if (actionLeads.length === 0) return;
+    if (bulkActionLeads.length === 0) return;
     if (dirtyActionLeads.length > 0) {
       setMessage({ kind: "err", text: "Save edited rows before pushing leads." });
       return;
@@ -418,7 +429,7 @@ export function IngestionDashboard({ leads: initialLeads }: Props) {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ leadIds: actionLeads.map((lead) => lead.id) }),
+          body: JSON.stringify({ leadIds: bulkActionLeads.map((lead) => lead.id) }),
           fallbackError: "Failed to push leads to Instantly",
         }
       );
@@ -577,64 +588,91 @@ export function IngestionDashboard({ leads: initialLeads }: Props) {
       </div>
 
       <div className="card p-4">
-        <div className="flex flex-wrap items-center gap-2">
-        <button
-          onClick={() => saveLeads()}
-          disabled={busy !== null || dirtyActionLeads.length === 0}
-          className="btn-primary text-sm"
-        >
-          {busy === "save"
-            ? "Saving..."
-            : `Save edits (${dirtyActionLeads.length} in ${actionScope})`}
-        </button>
-        <button
-          onClick={assignCampaign}
-          disabled={busy !== null || !selectedCampaign || actionLeads.length === 0}
-          className="btn-secondary text-sm"
-        >
-          {busy === "assign"
-            ? "Assigning..."
-            : `Assign campaign (${actionLeads.length} in ${actionScope})`}
-        </button>
-        <button
-          onClick={reviseRoles}
-          disabled={busy !== null || actionLeads.length === 0}
-          className="btn-secondary text-sm"
-        >
-          {busy === "revise-roles"
-            ? "Revising..."
-            : `Revise roles (${actionLeads.length} in ${actionScope})`}
-        </button>
-        <button
-          onClick={verifyLeads}
-          disabled={busy !== null || actionLeads.length === 0}
-          className="btn-secondary text-sm"
-        >
-          {busy === "verify"
-            ? "Verifying..."
-            : `Run DeBounce (${actionLeads.length} in ${actionScope})`}
-        </button>
-        <button
-          onClick={pushLeads}
-          disabled={busy !== null || actionLeads.length === 0}
-          className="btn-accent text-sm"
-        >
-          {busy === "push"
-            ? "Pushing..."
-            : `Push safe leads (${actionLeads.length} in ${actionScope})`}
-        </button>
-        <div className="flex-1" />
-        {selectedIds.size > 0 && (
-          <div className="rounded-xl bg-ink-900 px-3 py-1.5 text-xs font-medium text-white shadow-[0_20px_45px_-30px_rgba(14,14,8,0.95)]">
-            {selectedIds.size} selected
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
+            <div className="min-w-0 flex-1">
+              <label className="label">Bulk campaign assignment</label>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <select
+                  className="input sm:max-w-[360px]"
+                  value={bulkCampaignId}
+                  onChange={(event) => setBulkCampaignId(event.target.value)}
+                  disabled={campaignsLoading}
+                >
+                  <option value="">Choose campaign...</option>
+                  {campaigns.map((campaign) => (
+                    <option key={campaign.id} value={campaign.id}>
+                      {campaign.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={assignCampaign}
+                  disabled={busy !== null || !selectedCampaign || bulkActionLeads.length === 0}
+                  className="btn-primary text-sm whitespace-nowrap"
+                >
+                  {busy === "assign"
+                    ? "Assigning..."
+                    : `Assign ${bulkActionLabel}`}
+                </button>
+              </div>
+              <p className="mt-2 text-xs text-ink-400">
+                Applies to {bulkActionScope}. The assignment is saved back to Airtable.
+              </p>
+            </div>
+
+            {selectedIds.size > 0 && (
+              <div className="rounded-2xl border border-ink-100 bg-ink-50 px-3 py-2 text-xs font-medium text-ink-700 shadow-[0_18px_45px_-34px_rgba(14,14,8,0.45)]">
+                {selectedIds.size} selected
+                <button
+                  onClick={() => setSelectedIds(new Set())}
+                  className="ml-3 text-ink-500 hover:text-ink-900"
+                >
+                  Clear selection
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-wrap gap-2">
             <button
-              onClick={() => setSelectedIds(new Set())}
-              className="ml-3 text-ink-300 hover:text-white"
+              onClick={() => saveLeads()}
+              disabled={busy !== null || dirtyActionLeads.length === 0}
+              className="btn-secondary text-sm"
             >
-              Clear
+              {busy === "save"
+                ? "Saving..."
+                : `Save edits (${dirtyActionLeads.length})`}
+            </button>
+            <button
+              onClick={reviseRoles}
+              disabled={busy !== null || bulkActionLeads.length === 0}
+              className="btn-secondary text-sm"
+            >
+              {busy === "revise-roles"
+                ? "Revising..."
+                : `Revise roles (${bulkActionLeads.length})`}
+            </button>
+            <button
+              onClick={verifyLeads}
+              disabled={busy !== null || bulkActionLeads.length === 0}
+              className="btn-secondary text-sm"
+            >
+              {busy === "verify"
+                ? "Verifying..."
+                : `Run DeBounce (${bulkActionLeads.length})`}
+            </button>
+            <button
+              onClick={pushLeads}
+              disabled={busy !== null || bulkActionLeads.length === 0}
+              className="btn-secondary border-amber-200 bg-amber-50 text-amber-800 hover:border-amber-300 hover:bg-amber-100 text-sm"
+            >
+              {busy === "push"
+                ? "Pushing..."
+                : `Push safe leads (${bulkActionLeads.length})`}
             </button>
           </div>
-        )}
         </div>
       </div>
 
@@ -672,7 +710,7 @@ export function IngestionDashboard({ leads: initialLeads }: Props) {
             <div>
               <h3 className="text-sm font-semibold text-ink-900">Lead table</h3>
               <p className="mt-1 text-xs text-ink-400">
-                Core sequence fields stay inline. Lower-priority data like company domains edits on demand.
+                Core sequence fields stay inline. Lower-priority data such as company domain is edited on demand.
               </p>
             </div>
           </div>
