@@ -29,6 +29,8 @@ export function LeadDetailClient({ lead: initialLead }: Props) {
 
   const merged: Lead = { ...lead, ...draft };
   const dirty = Object.keys(draft).length > 0;
+  const reviewFieldClass =
+    "input border-ink-200 bg-white shadow-[0_10px_28px_-24px_rgba(14,14,8,0.45)]";
 
   function setField<K extends keyof Lead>(key: K, value: Lead[K]) {
     setDraft((prev) => ({ ...prev, [key]: value }));
@@ -241,19 +243,19 @@ export function LeadDetailClient({ lead: initialLead }: Props) {
       )}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
-        <section className="card p-6 space-y-4">
+        <section className="card space-y-4 border-ink-200/80 bg-[linear-gradient(180deg,rgba(255,252,247,0.98),rgba(248,245,238,0.96))] p-6">
           <h2 className="text-lg font-semibold">Review fields</h2>
           <div className="grid grid-cols-2 gap-3">
             <Field label="First Name">
               <input
-                className="input"
+                className={reviewFieldClass}
                 value={merged.firstName || ""}
                 onChange={(event) => setField("firstName", event.target.value)}
               />
             </Field>
             <Field label="Last Name">
               <input
-                className="input"
+                className={reviewFieldClass}
                 value={merged.lastName || ""}
                 onChange={(event) => setField("lastName", event.target.value)}
               />
@@ -262,7 +264,7 @@ export function LeadDetailClient({ lead: initialLead }: Props) {
           <Field label="Email">
             <input
               type="email"
-              className="input"
+              className={reviewFieldClass}
               value={merged.email || ""}
               onChange={(event) => setField("email", event.target.value)}
             />
@@ -270,28 +272,28 @@ export function LeadDetailClient({ lead: initialLead }: Props) {
           <Field label="LinkedIn URL">
             <input
               type="url"
-              className="input"
+              className={reviewFieldClass}
               value={merged.linkedinUrl || ""}
               onChange={(event) => setField("linkedinUrl", event.target.value)}
             />
           </Field>
           <Field label="Title">
             <input
-              className="input"
+              className={reviewFieldClass}
               value={merged.title || ""}
               onChange={(event) => setField("title", event.target.value)}
             />
           </Field>
           <Field label="Company Name">
             <input
-              className="input"
+              className={reviewFieldClass}
               value={merged.companyName || ""}
               onChange={(event) => setField("companyName", event.target.value)}
             />
           </Field>
           <Field label="Company Website / Domain">
             <input
-              className="input"
+              className={reviewFieldClass}
               value={merged.companyDomain || ""}
               onChange={(event) => setField("companyDomain", event.target.value)}
               placeholder="https://example.com"
@@ -299,7 +301,7 @@ export function LeadDetailClient({ lead: initialLead }: Props) {
           </Field>
           <Field label="Industry">
             <select
-              className="input"
+              className={reviewFieldClass}
               value={merged.industry || ""}
               onChange={(event) =>
                 setField("industry", (event.target.value || undefined) as Lead["industry"])
@@ -313,7 +315,7 @@ export function LeadDetailClient({ lead: initialLead }: Props) {
           </Field>
           <Field label="Notes">
             <textarea
-              className="input min-h-[90px]"
+              className={`${reviewFieldClass} min-h-[90px]`}
               value={merged.notes || ""}
               onChange={(event) => setField("notes", event.target.value)}
             />
